@@ -49,7 +49,7 @@ describe('create a statement', () => {
     expect(response.status).toBe(201);
   });
 
-  it('Should create a withdraw statement', async () => {
+  it('Should create a withdraw statement if it has enough fund', async () => {
     const responseToken = await request(app).post('/api/v1/sessions').send({
       email: 'admin@finapp.com',
       password: '1234'
@@ -66,7 +66,51 @@ describe('create a statement', () => {
         Authorization: `Bearer ${ token }`
       });
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('id');
+    expect(response.status).toBe(201);
+  });
+
+  it('Should create a transfer statement if it has enough fund', async () => {
+    
+    const responseId = await request(app).post('/api/v1/sessions').send({
+      email: 'admin@finapp.com',
+      password: '1234'
+    });
+
+    const { id } = responseId.body.user;
+
+    await request(app).post('/api/v1/users').send({
+      name: 'Magnus',
+      email: 'magnus@email.com',
+      password: '1234'
+    });
+
+    const responseToken = await request(app).post('/api/v1/sessions').send({
+      email: 'magnus@email.com',
+      password: '1234'
+    });
+
+    const { token } = responseToken.body;
+
+    await request(app).post('/api/v1/statements/deposit')
+      .send({
+        amount: 100,
+        description: 'Deposit statement'
+      })
+      .set({
+        Authorization: `Bearer ${ token }`
+      });
+
+    const response = await request(app).post(`/api/v1/statements/transfers/${id}`)
+      .send({
+        amount: 25,
+        description: 'transfer statement'
+      })
+      .set({
+        Authorization: `Bearer ${ token }`
+      });
+
+    expect(response.body).toHaveProperty('id');
+    expect(response.status).toBe(201);
   });
 });
